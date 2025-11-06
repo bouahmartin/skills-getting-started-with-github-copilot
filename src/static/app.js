@@ -55,6 +55,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activitiesList.appendChild(activityCard);
 
+        // Attach delete buttons to each participant list item
+        const participantItems = activityCard.querySelectorAll('.participants-list li');
+        participantItems.forEach((li) => {
+          const emailSpan = li.querySelector('.participant-name');
+          if (!emailSpan) return;
+          const email = emailSpan.textContent.trim();
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'participant-delete';
+          delBtn.title = 'Unregister participant';
+          delBtn.setAttribute('aria-label', `Unregister ${email}`);
+          delBtn.innerHTML = '✖';
+
+          delBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            // confirmation
+            if (!confirm(`Remove ${email} from ${name}?`)) return;
+            try {
+              const resp = await fetch(
+                `/activities/${encodeURIComponent(name)}/participants?email=${encodeURIComponent(email)}`,
+                { method: 'DELETE' }
+              );
+              const resJson = await resp.json();
+              if (resp.ok) {
+                messageDiv.textContent = resJson.message;
+                messageDiv.className = 'message success';
+                messageDiv.classList.remove('hidden');
+                // Refresh activities list to reflect change
+                fetchActivities();
+              } else {
+                messageDiv.textContent = resJson.detail || 'Failed to remove participant';
+                messageDiv.className = 'message error';
+                messageDiv.classList.remove('hidden');
+              }
+              setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+            } catch (err) {
+              console.error('Error removing participant:', err);
+              messageDiv.textContent = 'Error removing participant';
+              messageDiv.className = 'message error';
+              messageDiv.classList.remove('hidden');
+              setTimeout(() => messageDiv.classList.add('hidden'), 5000);
+            }
+          });
+
+          li.appendChild(delBtn);
+        });
+
         // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
